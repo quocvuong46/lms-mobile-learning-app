@@ -295,7 +295,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
-  for (final value in <int?>[null, 0]) {
+  for (final value in <double?>[null, 0.0]) {
     testWidgets('Analytics preserves null versus zero $value', (tester) async {
       viewport(tester, 384, height: 1800);
       await tester.pumpWidget(
@@ -304,9 +304,13 @@ void main() {
             body: TeacherAnalyticsTab(
               api: api(
                 (_) => {
-                  'courseid': 14,
-                  'average_events_last_7_days': value,
-                  'average_active_days_last_7_days': value,
+                  'generated_at': '2026-10-10T00:00:00Z',
+                  'summary': {
+                    'student_count': 10,
+                    'watch_count': 2,
+                    'average_progress': value,
+                    'average_grade_percentage': value,
+                  },
                 },
               ),
               courseId: 14,
@@ -316,11 +320,12 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.text('Trung bình: 0 tương tác'),
-        value == 0 ? findsOneWidget : findsNothing,
+        find.text('0.0%'),
+        value == 0.0 ? findsNWidgets(2) : findsNothing,
       );
-      if (value == null) expect(find.text('Chưa có dữ liệu'), findsNWidgets(2));
-      expect(find.text('Chưa ghi nhận tương tác trong 7 ngày'), findsNothing);
+      if (value == null) {
+        expect(find.text('--'), findsNWidgets(2));
+      }
       expect(tester.takeException(), isNull);
     });
   }

@@ -22,7 +22,10 @@ class NotificationsScreen extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Thông báo')),
+    appBar: AppBar(
+      title: const Text('Thông báo'),
+      automaticallyImplyLeading: false,
+    ),
     body: AsyncTab<List<LearningNotification>>(
       load: () => api.getNotifications(teacher: teacher),
       children: (items) => [

@@ -23,12 +23,15 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Khóa học giảng dạy')),
+    appBar: AppBar(
+      title: const Text('Khóa học giảng dạy'),
+      automaticallyImplyLeading: false,
+    ),
     body: SafeArea(
       child: AsyncTab<List<TeacherCourse>>(
         load: () => _api.getTeacherCourses(),
         children: (courses) => courses.isEmpty
-            ? [const DetailCard(title: 'Chưa có khóa học nào được phân công')]
+            ? [const EmptyState('Bạn chưa được phân công', subtitle: 'Hiện chưa có khóa học nào hiển thị ở đây.', icon: Icons.folder_open_rounded)]
             : [
                 for (final course in courses)
                   TeacherCourseCard(

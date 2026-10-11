@@ -149,12 +149,19 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                CompactMetrics({
+                  'Tiến độ': detailValue(profile.averageProgress, suffix: '%'),
+                  'Khóa học': detailValue(profile.totalCourses),
+                  if (profile.averageAttendancePercentage != null)
+                    'Chuyên cần': detailValue(profile.averageAttendancePercentage, suffix: '%'),
+                }),
               ];
             },
           ),
           SectionHeader(
             'Ưu tiên hôm nay',
-            action: 'Xem tất cả',
+            action: 'Tất cả việc cần làm',
             onAction: _tasks,
           ),
           _HomeSection<List<StudentTask>>(
@@ -197,7 +204,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               ],
             ],
           ),
-          SectionHeader('Khóa học', action: 'Xem tất cả', onAction: _courses),
+          SectionHeader('Khóa học của bạn', action: 'Xem tất cả', onAction: _courses),
           _HomeSection<List<StudentCourse>>(
             future: _courseData,
             onRetry: () => setState(() {
@@ -210,40 +217,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   course: course,
                   onTap: () => _openCourse(course),
                 ),
-            ],
-          ),
-          const SectionHeader('Tổng quan học tập'),
-          _HomeSection<StudentDashboard>(
-            future: _profile,
-            onRetry: () => setState(() {
-              _profile = _capture(_api.getStudentDashboard());
-            }),
-            children: (profile) => [
-              CompactMetrics({
-                'Tiến độ trung bình': detailValue(
-                  profile.averageProgress,
-                  suffix: '%',
-                ),
-                'Khóa học': detailValue(profile.totalCourses),
-                if (profile.averageAttendancePercentage != null)
-                  'Chuyên cần': detailValue(
-                    profile.averageAttendancePercentage,
-                    suffix: '%',
-                  ),
-              }),
-            ],
-          ),
-          _HomeSection<List<StudentTask>>(
-            future: _taskData,
-            onRetry: () => setState(() {
-              _taskData = _capture(_api.getAllStudentTasks());
-            }),
-            children: (tasks) => [
-              CompactMetrics({
-                'Chưa hoàn thành': '${tasks.where((t) => t.isPending).length}',
-                'Quá hạn':
-                    '${tasks.where((t) => t.isOverdue(DateTime.now())).length}',
-              }),
             ],
           ),
         ],

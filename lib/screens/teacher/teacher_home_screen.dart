@@ -1,13 +1,14 @@
 import '../../core/display_text.dart';
 
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import '../../models/teacher_course.dart';
 import '../../services/api_service.dart';
 import '../../widgets/async_tab.dart';
 import '../../widgets/learning_widgets.dart';
+import '../../widgets/copilot_widgets.dart';
 import 'teacher_course_detail_screen.dart';
-import '../notifications_screen.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   final ApiService? apiService;
@@ -108,19 +109,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Hỗ trợ giảng dạy'),
-      actions: [
-        IconButton(
-          tooltip: 'Thông báo',
-          icon: const Icon(Icons.notifications_outlined),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => NotificationsScreen(api: _api, teacher: true),
-            ),
-          ),
-        ),
-      ],
+      title: const Text('Trang chủ Giảng viên'),
+      automaticallyImplyLeading: false,
     ),
     body: AsyncTab<List<TeacherCourse>>(
       load: _api.getTeacherCourses,
@@ -137,7 +127,14 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             ),
           ],
         ),
-        const SectionHeader('Cần xử lý'),
+        const SizedBox(height: 16),
+        TeacherCopilotCard(
+          studentsNeedAttention: _total(courses, (c) => c.studentsNeedAttention) ?? 0,
+          needsGradingCount: _total(courses, (c) => c.needsGradingCount) ?? 0,
+          upcomingDeadlines: _total(courses, (c) => c.upcomingDeadlines7Days) ?? 0,
+        ),
+        const SizedBox(height: 8),
+        const SectionHeader('Chi tiết công việc'),
         Text(
           'Được tổng hợp từ các khóa học',
           style: Theme.of(context).textTheme.bodySmall,
@@ -219,10 +216,94 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         ),
         const SectionHeader('Khóa học giảng dạy'),
         if (courses.isEmpty)
-          const EmptyState('Chưa có khóa học được phân công'),
+          const EmptyState('Chưa có khóa học được phân công')
+        else ...[
+          _buildProgressComparisonChart(courses),
+          const SizedBox(height: 16),
+        ],
         for (final c in courses)
           TeacherCourseCard(course: c, onTap: () => _open(c, 0)),
       ],
     ),
   );
+
+  Widget _buildProgressComparisonChart(List<TeacherCourse> courses) {
+    final validCourses = courses.where((c) => c.averageProgress != null).toList();
+    if (validCourses.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'So sánh tiến độ các khóa học',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tỷ lệ hoàn thành trung bình của sinh viên trong từng khóa học.',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 200,
+              child: BarChart(
+                BarChartData(
+                  alignment: BarChartAlignment.spaceAround,
+                  maxY: 100,
+                  barTouchData: BarTouchData(enabled: false),
+                  titlesData: FlTitlesData(
+                    show: true,
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (double value, TitleMeta meta) {
+                          final index = value.toInt();
+                          if (index >= 0 && index < validCourses.length) {
+                            String name = validCourses[index].courseShortname ?? validCourses[index].courseName;
+                            if (name.length > 10) name = '${name.substring(0, 8)}...';
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(name, style: const TextStyle(fontSize: 10)),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                        reservedSize: 32,
+                      ),
+                    ),
+                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  barGroups: validCourses.asMap().entries.map((entry) {
+                    return BarChartGroupData(
+                      x: entry.key,
+                      barRods: [
+                        BarChartRodData(
+                          toY: entry.value.averageProgress!.clamp(0, 100).toDouble(),
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 20,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(4),
+                            topRight: Radius.circular(4),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+

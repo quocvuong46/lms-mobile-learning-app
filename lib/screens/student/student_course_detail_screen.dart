@@ -7,6 +7,8 @@ import '../../models/student_course_detail.dart';
 import '../../services/api_service.dart';
 import '../../widgets/async_tab.dart';
 import '../../widgets/learning_widgets.dart';
+import 'student_reflection_screen.dart';
+import 'student_flashcard_screen.dart';
 
 class StudentCourseDetailScreen extends StatefulWidget {
   final StudentCourse course;
@@ -139,6 +141,30 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
       final pending = tasks.where((task) => task.isPending).length;
       final overdue = tasks.where((task) => task.isOverdue(now)).length;
       return [
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => StudentReflectionScreen(api: _api, courseId: course.courseId, courseName: course.courseName)));
+                },
+                icon: const Icon(Icons.book),
+                label: const Text('Nhật ký'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: FilledButton.tonalIcon(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => StudentFlashcardScreen(api: _api, courseId: course.courseId, courseName: course.courseName)));
+                },
+                icon: const Icon(Icons.style),
+                label: const Text('Flashcards'),
+              ),
+            ),
+          ],
+        ),
         if (suggestions.isNotEmpty) ...[
           const SectionHeader('Tiếp tục học'),
           ...suggestions.map(

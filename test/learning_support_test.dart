@@ -129,6 +129,23 @@ void main() {
               'event_time': '2026-09-15T10:00:00Z',
             },
           ],
+          'class-insights' => {
+            'generated_at': '2026-10-10T00:00:00Z',
+            'summary': {
+              'student_count': 3,
+              'watch_count': 1,
+            },
+            'attention_students': [
+              {
+                'student_id': 205,
+                'student_name': 'Sinh Demo',
+                'progress_percentage': 28.6,
+                'overdue_tasks': 3,
+                'reasons': ['Progress drop'],
+                'suggested_actions': ['Message student'],
+              },
+            ],
+          },
           _ => [],
         };
         return http.Response(
@@ -295,11 +312,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Xem sinh viên cần hỗ trợ'),
+      find.text('Xem sinh viên cần theo dõi'),
       300,
       scrollable: find.byType(Scrollable).last,
     );
-    await tester.tap(find.text('Xem sinh viên cần hỗ trợ'));
+    await tester.tap(find.text('Xem sinh viên cần theo dõi'));
     await tester.pumpAndSettle();
     expect(
       tester

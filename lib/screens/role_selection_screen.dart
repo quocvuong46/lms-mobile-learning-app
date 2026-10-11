@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'student/student_main_screen.dart';
-import 'teacher/teacher_home_screen.dart';
+import 'teacher/teacher_main_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -130,7 +130,7 @@ class RoleSelectionScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const TeacherHomeScreen(),
+                        builder: (_) => const TeacherMainScreen(),
                       ),
                     );
                   },

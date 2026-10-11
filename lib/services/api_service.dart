@@ -12,6 +12,9 @@ import '../models/teacher_analytics.dart';
 import '../models/student_course_detail.dart';
 import '../models/teacher_monitoring.dart';
 import '../models/learning_notification.dart';
+import '../models/student_insights.dart';
+import '../models/class_insights.dart';
+import '../models/learning_goal.dart';
 
 class ApiService {
   Future<List<LearningNotification>> getNotifications({
@@ -105,6 +108,32 @@ class ApiService {
     }
   }
 
+  Future<dynamic> _postJson(String path, {Map<String, dynamic>? body}) async {
+    final url = Uri.parse('${ApiConstants.baseUrl}$path');
+    try {
+      final response = await _client
+          .post(
+            url,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (response.body.isEmpty) return null;
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        throw Exception('Lỗi kết nối máy chủ (${response.statusCode})');
+      }
+    } catch (error, stack) {
+      debugPrint('API POST $path: $error\n$stack');
+      rethrow;
+    }
+  }
+
   // STUDENT APIs
   Future<StudentDashboard> getStudentDashboard({
     int studentId = ApiConstants.studentId,
@@ -157,7 +186,49 @@ class ApiService {
     throw Exception('Dữ liệu phân tích khóa học không hợp lệ');
   }
 
+  Future<List<LearningGoal>> getStudentGoals({
+    int studentId = ApiConstants.studentId,
+  }) => _list(
+    '/dev/students/$studentId/goals',
+    LearningGoal.fromJson,
+  );
+
+  Future<LearningGoal> createStudentGoal(
+    Map<String, dynamic> request, {
+    int studentId = ApiConstants.studentId,
+  }) async {
+    final data = await _postJson('/dev/students/$studentId/goals', body: request);
+    if (data is Map<String, dynamic>) {
+      return LearningGoal.fromJson(data);
+    }
+    throw Exception('Dữ liệu không hợp lệ');
+  }
+
+  Future<LearningGoal> cancelStudentGoal(
+    int goalId, {
+    int studentId = ApiConstants.studentId,
+  }) async {
+    final data = await _postJson('/dev/students/$studentId/goals/$goalId/cancel');
+    if (data is Map<String, dynamic>) {
+      return LearningGoal.fromJson(data);
+    }
+    throw Exception('Dữ liệu không hợp lệ');
+  }
+
   // TEACHER APIs
+  Future<StudentInsights> getGlobalStudentInsights({
+    int studentId = ApiConstants.studentId,
+    int days = 56,
+  }) async {
+    final data = await _getJson('/dev/students/$studentId/insights?days=$days');
+    if (data is Map<String, dynamic>) {
+      if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
+        return StudentInsights.fromJson(data['data'] as Map<String, dynamic>);
+      }
+      return StudentInsights.fromJson(data);
+    }
+    throw Exception('Dữ liệu phân tích học tập không hợp lệ');
+  }
   Future<List<TeacherCourse>> getTeacherCourses({
     int teacherId = ApiConstants.teacherId,
   }) async {
@@ -193,6 +264,23 @@ class ApiService {
       return TeacherAnalytics.fromJson(data);
     }
     throw Exception('Dữ liệu phân tích khóa học giảng viên không hợp lệ');
+  }
+
+  Future<ClassInsights> getClassInsights({
+    int teacherId = ApiConstants.teacherId,
+    required int courseId,
+    int weeks = 8,
+  }) async {
+    final data = await _getJson(
+      '/dev/teachers/$teacherId/courses/$courseId/class-insights?weeks=$weeks',
+    );
+    if (data is Map<String, dynamic>) {
+      if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
+        return ClassInsights.fromJson(data['data'] as Map<String, dynamic>);
+      }
+      return ClassInsights.fromJson(data);
+    }
+    throw Exception('Dữ liệu thông tin lớp học không hợp lệ');
   }
 
   Future<List<T>> _studentList<T>(
@@ -260,4 +348,87 @@ class ApiService {
     }
     return StudentAttendance.fromJson(data);
   }
+
+  // PHASE C: Learning Reflection (Student)
+  Future<List<Map<String, dynamic>>> getReflections({int studentId = ApiConstants.studentId, int? courseId}) async {
+    final query = courseId == null ? '' : '?courseId=$courseId';
+    final response = await _getJson('/dev/students/$studentId/reflections$query');
+    final data = response is Map<String, dynamic> && response.containsKey('data') ? response['data'] : response;
+    if (data is! List) throw const FormatException('Expected a list of reflections');
+    return data.map((item) {
+      if (item is! Map<String, dynamic>) throw const FormatException('Invalid reflection item');
+      return item;
+    }).toList();
+  }
+
+  Future<void> addReflection(String content, int level, {int studentId = ApiConstants.studentId, int? courseId}) async {
+    final payload = <String, dynamic>{'content': content, 'understandingLevel': level};
+    if (courseId != null) payload['courseId'] = courseId;
+    await _postJson('/dev/students/$studentId/reflections', body: payload);
+  }
+
+  // PHASE C: Teacher Notes (Teacher)
+  Future<List<Map<String, dynamic>>> getTeacherNotes(int studentId, {int teacherId = ApiConstants.teacherId, int? courseId}) async {
+    String url = '${ApiConstants.baseUrl}/teachers/$teacherId/notes?studentId=$studentId';
+    if (courseId != null) url += '&courseId=$courseId';
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) throw Exception('Failed to get notes');
+    return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+  }
+
+  Future<void> addTeacherNote(int studentId, String note, {int teacherId = ApiConstants.teacherId, int? courseId, String status = 'active'}) async {
+    final payload = {'studentId': studentId, 'note': note, 'status': status};
+    if (courseId != null) payload['courseId'] = courseId;
+    final response = await http.post(
+      Uri.parse('${ApiConstants.baseUrl}/teachers/$teacherId/notes'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(payload),
+    );
+    if (response.statusCode != 200) throw Exception('Failed to add note');
+  }
+
+  Future<void> updateTeacherNoteStatus(int noteId, String status, {int teacherId = ApiConstants.teacherId}) async {
+    final payload = {'status': status};
+    final response = await http.put(
+      Uri.parse('${ApiConstants.baseUrl}/teachers/$teacherId/notes/$noteId/status'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(payload),
+    );
+    if (response.statusCode != 200) throw Exception('Failed to update note status');
+  }
+
+  // PHASE D: Flashcards
+  String _flashcardPath(int courseId, int studentId) =>
+      '/dev/students/$studentId/courses/$courseId/flashcards';
+
+  Future<List<Map<String, dynamic>>> getFlashcards(int courseId, {int studentId = ApiConstants.studentId}) async {
+    final response = await _getJson(_flashcardPath(courseId, studentId));
+    final data = response is Map<String, dynamic> && response.containsKey('data') ? response['data'] : response;
+    if (data is! List) throw const FormatException('Expected a list of flashcards');
+    return data.map((item) {
+      if (item is! Map<String, dynamic>) throw const FormatException('Invalid flashcard item');
+      return item;
+    }).toList();
+  }
+
+  Future<void> addFlashcard(int courseId, String frontText, String backText, {int studentId = ApiConstants.studentId}) async {
+    await _postJson(_flashcardPath(courseId, studentId), body: {'frontText': frontText, 'backText': backText});
+  }
+
+  Future<void> updateFlashcard(int courseId, int id, String frontText, String backText, {int studentId = ApiConstants.studentId}) async {
+    final response = await _client.put(
+      Uri.parse('${ApiConstants.baseUrl}${_flashcardPath(courseId, studentId)}/$id'),
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode({'frontText': frontText, 'backText': backText}),
+    );
+    if (response.statusCode != 200) throw Exception('Lỗi cập nhật thẻ (${response.statusCode})');
+  }
+
+  Future<void> deleteFlashcard(int courseId, int id, {int studentId = ApiConstants.studentId}) async {
+    final response = await _client.delete(
+      Uri.parse('${ApiConstants.baseUrl}${_flashcardPath(courseId, studentId)}/$id'),
+    );
+    if (response.statusCode != 200) throw Exception('Lỗi xóa thẻ (${response.statusCode})');
+  }
+
 }

@@ -15,22 +15,44 @@ class SectionHeader extends StatelessWidget {
   final VoidCallback? onAction;
   const SectionHeader(this.title, {super.key, this.action, this.onAction});
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 16, bottom: 8),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: colors.primary,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(Icons.star, color: colors.onPrimary, size: 16),
           ),
-        ),
-        if (action != null)
-          TextButton(onPressed: onAction, child: Text(action!)),
-      ],
-    ),
-  );
+          Expanded(
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700, color: colors.primary),
+            ),
+          ),
+          if (action != null)
+            Flexible(
+              child: TextButton(
+                onPressed: onAction, 
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(action!, textAlign: TextAlign.right),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class StatusChip extends StatelessWidget {
@@ -53,6 +75,7 @@ class StatusChip extends StatelessWidget {
         : colors.onSurfaceVariant;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width - 64),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(8),
@@ -108,6 +131,19 @@ class UserAvatar extends StatelessWidget {
       name.trim().isEmpty ? '?' : name.trim().characters.first.toUpperCase(),
     ),
   );
+}
+
+class WrapConstrainedText extends StatelessWidget {
+  final String text;
+  final TextStyle? style;
+  const WrapConstrainedText(this.text, {super.key, this.style});
+  @override
+  Widget build(BuildContext context) => Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width - 64,
+        ),
+        child: Text(text, style: style),
+      );
 }
 
 class CompactMetrics extends StatelessWidget {
@@ -201,17 +237,17 @@ class CourseProgressCard extends StatelessWidget {
         runSpacing: 4,
         children: [
           if (course.completedTasks != null && course.totalTasks != null)
-            Text(
+            WrapConstrainedText(
               '${course.completedTasks}/${course.totalTasks} hoạt động',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           if (course.unfinishedTasks != null)
-            Text(
+            WrapConstrainedText(
               '${course.unfinishedTasks} việc chưa hoàn thành',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           if (course.overdueTasks != null)
-            Text(
+            WrapConstrainedText(
               '${course.overdueTasks} quá hạn',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: course.overdueTasks! > 0
@@ -556,8 +592,8 @@ class TeacherCourseCard extends StatelessWidget {
         spacing: 12,
         runSpacing: 4,
         children: [
-          Text('${detailValue(course.studentCount)} sinh viên'),
-          Text(
+          WrapConstrainedText('${detailValue(course.studentCount)} sinh viên'),
+          WrapConstrainedText(
             'Tiến độ trung bình ${formatPercentageVi(course.averageProgress)}',
           ),
         ],
@@ -573,13 +609,13 @@ class TeacherCourseCard extends StatelessWidget {
         spacing: 12,
         runSpacing: 4,
         children: [
-          Text(
+          WrapConstrainedText(
             course.studentsNeedAttention == null
                 ? 'Sinh viên cần theo dõi: Chưa có dữ liệu'
                 : '${course.studentsNeedAttention} sinh viên cần theo dõi',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          Text(
+          WrapConstrainedText(
             course.needsGradingCount == null
                 ? 'Bài cần chấm: Chưa có dữ liệu'
                 : '${course.needsGradingCount} bài cần chấm',

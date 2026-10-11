@@ -153,11 +153,23 @@ void main() {
             {'activity_name': 'Nội dung khóa học', 'activity_type': 'resource'},
           ],
           'notifications' => notificationData,
-          'analytics' => {
-            'courseid': 42,
-            'high_risk_students': 1,
-            'medium_risk_students': 1,
-            'low_risk_students': 1,
+          'class-insights' => {
+            'generated_at': '2026-10-10T00:00:00Z',
+            'summary': {
+              'student_count': 1,
+              'watch_count': 1,
+              'average_progress': 35.0,
+            },
+            'attention_students': [
+              {
+                'student_id': 205,
+                'student_name': 'Sinh viên nguy cơ',
+                'progress_percentage': 0,
+                'overdue_tasks': 2,
+                'reasons': ['Progress drop'],
+                'suggested_actions': ['Message'],
+              }
+            ]
           },
           'students' =>
             r.url.path.contains('/assignments/') ||
@@ -329,7 +341,7 @@ void main() {
         );
         await t.pumpAndSettle();
         final label = action == 'HIGH'
-            ? 'Xem sinh viên cần hỗ trợ'
+            ? 'Xem sinh viên cần theo dõi'
             : 'Xem sinh viên cần theo dõi';
         final chip = action == 'HIGH' ? 'Nguy cơ cao' : 'Cần theo dõi';
         for (var pass = 0; pass < 2; pass++) {
@@ -428,7 +440,7 @@ void main() {
       await t.tap(
         find.descendant(
           of: find.widgetWithText(SectionHeader, 'Ưu tiên hôm nay'),
-          matching: find.text('Xem tất cả'),
+          matching: find.text('Tất cả việc cần làm'),
         ),
       );
       await t.pumpAndSettle();

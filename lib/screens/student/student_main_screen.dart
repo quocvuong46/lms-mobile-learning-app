@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import 'student_dashboard_screen.dart';
 import 'student_courses_screen.dart';
 import 'student_task_center_screen.dart';
+import 'student_analytics_screen.dart';
 import '../notifications_screen.dart';
 
 class StudentMainScreen extends StatefulWidget {
@@ -49,11 +50,17 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
           NotificationsScreen(api: _api, onTasks: () => _select(1))
         else
           const SizedBox.shrink(),
+        if (_visited.contains(4))
+          StudentAnalyticsScreen(apiService: _api)
+        else
+          const SizedBox.shrink(),
       ],
     ),
     bottomNavigationBar: NavigationBar(
       selectedIndex: _index,
       onDestinationSelected: _select,
+      height: 64 + 16 * (MediaQuery.textScalerOf(context).scale(1) - 1).clamp(0.0, 1.0),
+      labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
       destinations: const [
         NavigationDestination(
           icon: Icon(Icons.home_outlined),
@@ -70,6 +77,10 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
         NavigationDestination(
           icon: Icon(Icons.notifications_outlined),
           label: 'Thông báo',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.insights_outlined),
+          label: 'Phân tích',
         ),
       ],
     ),

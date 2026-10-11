@@ -58,6 +58,33 @@ class _StudentTaskCenterScreenState extends State<StudentTaskCenterScreen> {
                 now,
               )
             : filterTasks(tasks, _filter, now);
+            
+        final overdue = visible.where((t) => t.isOverdue(now) && !t.isDone).toList();
+        final today = visible.where((t) {
+          if (t.isDone || t.deadline == null || t.isOverdue(now)) return false;
+          final hours = t.deadline!.difference(now).inHours;
+          return hours >= 0 && hours <= 24 && t.deadline!.day == now.day;
+        }).toList();
+        
+        final next48h = visible.where((t) {
+          if (t.isDone || t.deadline == null || t.isOverdue(now) || today.contains(t)) return false;
+          final hours = t.deadline!.difference(now).inHours;
+          return hours >= 0 && hours <= 48;
+        }).toList();
+        
+        final thisWeek = visible.where((t) {
+          if (t.isDone || t.deadline == null || t.isOverdue(now) || today.contains(t) || next48h.contains(t)) return false;
+          final days = t.deadline!.difference(now).inDays;
+          return days >= 0 && days <= 7;
+        }).toList();
+        
+        final later = visible.where((t) {
+          if (t.isDone || t.deadline == null || t.isOverdue(now) || today.contains(t) || next48h.contains(t) || thisWeek.contains(t)) return false;
+          return true;
+        }).toList();
+        
+        final done = visible.where((t) => t.isDone).toList();
+
         return [
           if (widget.reminders)
             const Text(
@@ -98,7 +125,36 @@ class _StudentTaskCenterScreenState extends State<StudentTaskCenterScreen> {
                   ? 'Bạn đã hoàn thành tất cả việc cần làm'
                   : 'Không có việc trong bộ lọc này',
             ),
-          ...visible.map(TaskCard.new),
+            
+          if (_filter == TaskFilter.all || _filter == TaskFilter.pending || widget.reminders) ...[
+            if (overdue.isNotEmpty) ...[
+              SectionHeader('Quá hạn (${overdue.length})'),
+              ...overdue.map(TaskCard.new),
+            ],
+            if (today.isNotEmpty) ...[
+              SectionHeader('Hôm nay (${today.length})'),
+              ...today.map(TaskCard.new),
+            ],
+            if (next48h.isNotEmpty) ...[
+              SectionHeader('48 giờ tới (${next48h.length})'),
+              ...next48h.map(TaskCard.new),
+            ],
+            if (thisWeek.isNotEmpty) ...[
+              SectionHeader('Tuần này (${thisWeek.length})'),
+              ...thisWeek.map(TaskCard.new),
+            ],
+            if (later.isNotEmpty) ...[
+              SectionHeader('Sắp tới (${later.length})'),
+              ...later.map(TaskCard.new),
+            ],
+          ] else ...[
+             ...visible.map(TaskCard.new),
+          ],
+          
+          if (_filter == TaskFilter.all && done.isNotEmpty) ...[
+              SectionHeader('Đã hoàn thành (${done.length})'),
+              ...done.map(TaskCard.new),
+          ],
         ];
       },
     ),

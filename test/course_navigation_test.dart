@@ -69,12 +69,21 @@ void main() {
                   'average_progress': 35,
                 },
               ]
-            : request.url.path.endsWith('/analytics')
+            : request.url.path.endsWith('/class-insights')
             ? {
-                'courseid': 10,
-                'medium_risk_students': 2,
-                'high_risk_students': 0,
-                'low_risk_students': 2,
+                'generated_at': '2026-10-10T00:00:00Z',
+                'summary': {
+                  'student_count': 4,
+                  'watch_count': 1,
+                  'average_progress': 35.0,
+                },
+                'watch_groups': {
+                  'on_track': 1,
+                  'watch': 2,
+                  'needs_support': 1,
+                  'unknown': 0,
+                  'total': 4,
+                }
               }
             : [];
         return http.Response(jsonEncode(data), 200);
@@ -101,7 +110,7 @@ void main() {
       ('Sinh viên', 'Không có sinh viên phù hợp'),
       ('Bài tập', 'Khóa học chưa có bài tập'),
       ('Bài kiểm tra', 'Khóa học chưa có bài kiểm tra'),
-      ('Phân tích', 'Sinh viên cần hỗ trợ'),
+      ('Phân tích', 'Cần chú ý'),
     ]) {
       final target = find.widgetWithText(Tab, tab);
       await tester.ensureVisible(target);
@@ -110,7 +119,7 @@ void main() {
       expect(find.text(message), findsOneWidget);
       expect(tester.takeException(), isNull);
     }
-    expect(find.text('Sinh viên nguy cơ trung bình: 2'), findsOneWidget);
+    expect(find.text('Cần chú ý'), findsWidgets);
     expect(
       requests.every(
         (path) => [
@@ -118,7 +127,7 @@ void main() {
           'students',
           'assignments',
           'quizzes',
-          'analytics',
+          'class-insights',
         ].contains(path.split('/').last),
       ),
       isTrue,

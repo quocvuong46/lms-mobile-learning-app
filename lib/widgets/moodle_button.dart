@@ -89,20 +89,20 @@ class MoodleButton extends StatelessWidget {
             onPressed: onOpen,
             style: style,
             icon: icon,
-            label: Text(label),
+            label: Text(label, textAlign: TextAlign.center),
           )
         else if (compact)
           TextButton.icon(
             onPressed: onOpen,
             style: style,
             icon: icon,
-            label: Text(label),
+            label: Text(label, textAlign: TextAlign.center),
           )
         else
           OutlinedButton.icon(
             onPressed: onOpen,
             icon: icon,
-            label: Text(label),
+            label: Text(label, textAlign: TextAlign.center),
           ),
         if (uri == null)
           Text(

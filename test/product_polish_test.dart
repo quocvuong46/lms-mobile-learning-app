@@ -87,7 +87,24 @@ ApiService service() => ApiService(
         '501' => {...student, 'tasks': <Object>[]},
         'assignments' => [activity('assignment')],
         'quizzes' => [activity('quiz')],
-        'analytics' => {'courseid': 42, 'high_risk_students': 1},
+        'class-insights' => {
+          'generated_at': '2026-10-10T00:00:00Z',
+          'summary': {
+            'student_count': 1,
+            'watch_count': 1,
+            'average_progress': 35.0,
+          },
+          'attention_students': [
+            {
+              'student_id': 501,
+              'student_name': 'Học sinh rất dài và phức tạp',
+              'progress_percentage': 0,
+              'overdue_tasks': 1,
+              'reasons': ['Missing assignment'],
+              'suggested_actions': ['Message student'],
+            }
+          ]
+        },
         'grades' => [
           {
             'activity_name': 'Bài tập có điểm bằng không',
@@ -136,7 +153,11 @@ Future<void> show(WidgetTester t, Widget home, double scale) async {
   await t.pumpWidget(const SizedBox());
   await t.pumpWidget(app(home, scale));
   await t.pumpAndSettle();
-  expect(t.takeException(), isNull);
+  final ex = t.takeException();
+  if (ex != null) {
+    print('OVERFLOW IN: ${home.runtimeType}');
+    throw ex;
+  }
 }
 
 Future<void> scrollAll(WidgetTester t) async {
@@ -189,7 +210,17 @@ void main() {
         final api = service();
         addTearDown(api.dispose);
         await show(t, TeacherHomeScreen(apiService: api), scale);
-        expect(find.text('4 trường hợp cần theo dõi'), findsOneWidget);
+        final caseFinder = find.text('4 trường hợp cần theo dõi');
+        try {
+          expect(caseFinder, findsOneWidget);
+        } catch (_) {
+          await t.dragUntilVisible(
+            caseFinder,
+            find.byType(ListView).first,
+            const Offset(0, -200),
+          );
+          expect(caseFinder, findsOneWidget);
+        }
         await scrollAll(t);
         final courseTitle = t.widget<Text>(
           find.text(course['course_name'] as String),
@@ -230,8 +261,18 @@ void main() {
         );
         controller.animateTo(4);
         await t.pumpAndSettle();
-        expect(find.text('Sinh viên cần hỗ trợ'), findsOneWidget);
-        await t.tap(find.text('Xem sinh viên cần hỗ trợ'));
+        expect(find.text('Cần chú ý'), findsOneWidget);
+        final btn = find.text('Xem sinh viên cần theo dõi');
+        try {
+          await t.ensureVisible(btn);
+        } catch (_) {
+          await t.dragUntilVisible(
+            btn,
+            find.byType(Scrollable).last,
+            const Offset(0, -200),
+          );
+        }
+        await t.tap(btn);
         await t.pumpAndSettle();
         expect(controller.index, 1);
         expect(
@@ -254,7 +295,15 @@ void main() {
           ),
           scale,
         );
-        await t.ensureVisible(find.byType(CompactMetrics));
+        try {
+          await t.ensureVisible(find.byType(CompactMetrics));
+        } catch (_) {
+          await t.dragUntilVisible(
+            find.byType(CompactMetrics),
+            find.byType(Scrollable).last,
+            const Offset(0, -200),
+          );
+        }
         await t.pumpAndSettle();
         final metrics = find.byType(CompactMetrics);
         final missing = find.descendant(
